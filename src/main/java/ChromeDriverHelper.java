@@ -7,6 +7,8 @@ import java.nio.charset.*;
 import java.util.*;
 
 public class ChromeDriverHelper {
+	private static final String initialUrl = "data:,";
+
 	Properties properties = PropertiesHelper.getProperties();
 	WebDriver driver;
 
@@ -19,14 +21,19 @@ public class ChromeDriverHelper {
 		driver = new ChromeDriver(options);
 	}
 
-	public void setCookie(String key, String value) {
-		driver.get("https://rockvox.ru");
+	public void setCookie(Cookie cookie) {
+		if (driver.getCurrentUrl().equals(initialUrl)) {
+			driver.get(properties.getProperty("page_url_to_set_cookie"));
+			while (driver.getCurrentUrl().equals(initialUrl))
 		try {
-			Thread.sleep(4000);
+					//noinspection BusyWait
+					Thread.sleep(1000);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
-		driver.manage().addCookie(new Cookie(key, value, "rockvox.ru", "https://rockvox.ru", null));
+		}
+
+		driver.manage().addCookie(cookie);
 	}
 
 	public InputStream getHtmlStream(String url) {
