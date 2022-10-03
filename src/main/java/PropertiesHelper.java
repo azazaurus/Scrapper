@@ -5,7 +5,7 @@ public class PropertiesHelper {
 
 	public static Properties getProperties() {
 		Properties properties;
-		try (InputStream input = new FileInputStream("path/to/config.properties")) {
+		try (InputStream input = PropertiesHelper.class.getClassLoader().getResourceAsStream("config.properties")) {
 
 			properties = new Properties();
 			properties.load(input);

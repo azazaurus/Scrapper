@@ -1,3 +1,4 @@
+import java.net.*;
 import java.util.*;
 
 public class PageContent {
@@ -6,10 +7,10 @@ public class PageContent {
 	String lessonTitle;
 	String tasks;
 	Execution example;
-	String videoDownloadUrl;
+	URL videoDownloadUrl;
 	Info additionalInformation;
 
-	PageContent(String videoDownloadUrl, String tasks, Execution example, Info additionalInformation) {
-
+	PageContent(URL videoDownloadUrl) {
+		this.videoDownloadUrl = videoDownloadUrl;
 	}
 }
