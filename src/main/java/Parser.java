@@ -1,6 +1,7 @@
 import org.jsoup.*;
 import org.jsoup.nodes.*;
 import org.jsoup.select.*;
+import org.openqa.selenium.*;
 
 import java.io.*;
 import java.net.*;
@@ -9,16 +10,21 @@ import java.util.*;
 
 public class Parser {
 	Properties properties = PropertiesHelper.getProperties();
+	ChromeDriverHelper chromeDriverHelper = new ChromeDriverHelper();
 
 	public void start() {
+		chromeDriverHelper.set();
 		parseModulesListPage(properties.getProperty("start_page_url"));
 	}
 
 	private Document getHtml(String url) {
 		Document document;
 		try {
-			document = Jsoup.connect(url)
-				.cookie(properties.getProperty("cookie_header"), properties.getProperty("cookie")).get();
+			for (Cookie cookie : chromeDriverHelper.parseCookie()) {
+				chromeDriverHelper.setCookie(properties.getProperty("cookie_header"), properties.getProperty("cookie"));
+			}
+
+			document = Jsoup.parse(chromeDriverHelper.getHtmlStream(url), "UTF-8", "");
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
