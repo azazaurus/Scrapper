@@ -7,6 +7,8 @@ import java.nio.charset.*;
 import java.util.*;
 
 public class ChromeDriverHelper {
+	private static final String initialUrl = "data:,";
+
 	Properties properties = PropertiesHelper.getProperties();
 	WebDriver driver;
 
@@ -19,14 +21,21 @@ public class ChromeDriverHelper {
 		driver = new ChromeDriver(options);
 	}
 
-	public void setCookie(String key, String value) {
-		driver.get("https://rockvox.ru");
-		try {
-			Thread.sleep(4000);
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+	public void setCookie(Cookie cookie) {
+		if (driver.getCurrentUrl().equals(initialUrl)) {
+			driver.get(properties.getProperty("page_url_to_set_cookie"));
+			while (driver.getCurrentUrl().equals(initialUrl))
+				try {
+							//noinspection BusyWait
+							Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+
+			driver.manage().deleteAllCookies();
 		}
-		driver.manage().addCookie(new Cookie(key, value, "rockvox.ru", "https://rockvox.ru", null));
+
+		driver.manage().addCookie(cookie);
 	}
 
 	public InputStream getHtmlStream(String url) {
@@ -36,14 +45,15 @@ public class ChromeDriverHelper {
 
 	public List<Cookie> parseCookie() {
 		String cookies = properties.getProperty("cookie");
-		cookies = cookies.replaceAll(" ", "");
-		String[] cookiesArray = cookies.split(";");
-
+		String[] cookiesArray = cookies.split("; ");
 		ArrayList<Cookie> parsedCookies = new ArrayList<>();
 		String[] keyAndValue;
+		Calendar calendar = Calendar.getInstance();
+		calendar.add(Calendar.MINUTE, 30);
+		Date now = calendar.getTime();
 		for (String cookie : cookiesArray) {
 			keyAndValue = cookie.split("=");
-			parsedCookies.add(new Cookie(keyAndValue[0], keyAndValue[1]));
+			parsedCookies.add(new Cookie(keyAndValue[0], keyAndValue[1], null, null, now, true));
 		}
 
 		return parsedCookies;

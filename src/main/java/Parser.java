@@ -22,7 +22,7 @@ public class Parser {
 		Document document;
 		try {
 			for (Cookie cookie : chromeDriverHelper.parseCookie()) {
-				chromeDriverHelper.setCookie(properties.getProperty("cookie_header"), properties.getProperty("cookie"));
+				chromeDriverHelper.setCookie(cookie);
 			}
 
 			document = Jsoup.parse(chromeDriverHelper.getHtmlStream(url), "UTF-8", "");
