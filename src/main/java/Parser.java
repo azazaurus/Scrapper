@@ -1,6 +1,4 @@
-import org.jsoup.*;
-import org.jsoup.nodes.*;
-import org.jsoup.select.*;
+import javafx.util.*;
 import org.openqa.selenium.*;
 
 import java.io.*;
@@ -14,76 +12,53 @@ public class Parser {
 	ChromeDriverHelper chromeDriverHelper = new ChromeDriverHelper();
 
 	public void start() {
-		chromeDriverHelper.set();
+		chromeDriverHelper.init();
+		chromeDriverHelper.setCookies(chromeDriverHelper.parseCookies());
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 		parseModulesListPage(properties.getProperty("start_page_url"));
 	}
 
-	private Document getHtml(String url) {
-		Document document;
-		try {
-			for (Cookie cookie : chromeDriverHelper.parseCookie()) {
-				chromeDriverHelper.setCookie(cookie);
-			}
-
-			document = Jsoup.parse(chromeDriverHelper.getHtmlStream(url), "UTF-8", "");
-//			BufferedWriter  writer = null;
-//			try
-//			{
-//				writer = new BufferedWriter( new FileWriter("d://Учёба//test.txt"));
-//				writer.write(document.body().toString());
-//
-//			}
-//			catch ( IOException e)
-//			{
-//			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		return document;
-	}
-
 	private void parseModulesListPage(String url) {
-		Document document = getHtml(url);
-		Elements moduleElements = document.select("tr.no-children");
-		for (Element element : moduleElements) {
-			String moduleUrl = Objects.requireNonNull(element.select("a").first()).attr("abs:href");
-			parseLessonsListPage(moduleUrl);
-		}
+		chromeDriverHelper.goTo(url);
+		List<Pair<String, String>> moduleNameAndUrl = chromeDriverHelper.getModuleNameAndUrl();
+		parseLessonsListPage(moduleNameAndUrl.get(0).getKey());
+//		for (Element element : moduleElements) {
+//			String moduleUrl = Objects.requireNonNull(element.select("a").first()).attr("abs:href");
+//			parseLessonsListPage(moduleUrl);
+//		}
 	}
 
 	private void parseLessonsListPage(String url) {
-		Document document = getHtml(url);
-		Elements moduleElements = document.getElementsByClass("link title");
-		String moduleName = document.getElementsByClass("page-header").tagName("h1").val();
-		for (Element element : moduleElements) {
-			String lessonUrl =
-			Objects.requireNonNull(element.attr("abs:href"));
-			parseLessonPage(lessonUrl, moduleName);
-		}
+		chromeDriverHelper.goTo(url);
+		List<Pair<String, String>> lessonNameAndUrl = chromeDriverHelper.getLessonNameAndUrl();
+		parseLessonPage(lessonNameAndUrl.get(0).getKey());
+//		for (Element element : lessonNameAndUrl) {
+//			String lessonUrl =
+//			Objects.requireNonNull(element.attr("abs:href"));
+//			parseLessonPage(lessonUrl);
+//		}
 	}
 
-	private void parseLessonPage(String url, String moduleName) {
-		Document document = getHtml(url);
-		String lessonTitle = document.getElementsByClass("lesson-title-value").val();
-
-		String videoM3u8TextFileDownloadLink = document.getElementsByClass("vvd-video").first()
-			.select("source").first().attr("src");
-
-		String audioDownloadLink = document.getElementsByClass("jp_audio_0").first()
-			.select("source").first().attr("src");
+	private void parseLessonPage(String url) {
+		chromeDriverHelper.goTo(url);
+		String videoM3u8TextFileDownloadLink = chromeDriverHelper.getM3u8TextFileDownloadLink();
 
 		URL m3u8TextFileDownloadUrl = null;
 		if (videoM3u8TextFileDownloadLink != null)
 			try {
 				m3u8TextFileDownloadUrl = new URL(videoM3u8TextFileDownloadLink);
-				String fileName = moduleName + ". " + lessonTitle;
+				String fileName = "Test.m3u8";
+//				String fileName = moduleName + ". " + lessonTitle;
 				downloadVideoToFile(m3u8TextFileDownloadUrl,fileName);
 			} catch (MalformedURLException e) {
 				throw new RuntimeException(e);
 			}
-
-		System.out.println("Download video");
+//
+//		System.out.println("Download video");
 	}
 	public void downloadVideoToFile(URL m3u8TextFileUrl, String fileName){
 		URL videoDownloadUrl = getVideoUrl(m3u8TextFileUrl);
