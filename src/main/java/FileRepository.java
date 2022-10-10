@@ -1,11 +1,32 @@
 import javafx.util.*;
+import org.openqa.selenium.*;
+import ru.yandex.qatools.ashot.*;
 
+import javax.imageio.*;
+import javax.imageio.stream.*;
+import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
 public class FileRepository {
 	private static final Properties properties = PropertiesHelper.getProperties();
+
+	public static void saveAudioToFile(InputStream in, String fileBaseName, String moduleName) {
+		fileBaseName = replaceIllegalSymbols(fileBaseName);
+		moduleName = replaceIllegalSymbols(moduleName);
+
+		String audioPath = properties.getProperty("storage_folder_path") + moduleName +
+			"\\" + fileBaseName + "\\" + "audio\\";
+
+		try {
+			Files.createDirectories(Paths.get(audioPath));
+			Path filePath = Paths.get(audioPath, getAudioName(fileBaseName));
+			Files.copy(in, filePath, StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	public static void saveVideoToFile(InputStream in, String fileBaseName, String moduleName) {
 		fileBaseName = replaceIllegalSymbols(fileBaseName);
@@ -23,6 +44,36 @@ public class FileRepository {
 		}
 	}
 
+	public static void saveScreenshotToFile(Screenshot screenshot, WebElement element, String fileBaseName, String moduleName) {
+		fileBaseName = replaceIllegalSymbols(fileBaseName);
+		moduleName = replaceIllegalSymbols(moduleName);
+
+		try {
+			BufferedImage subImage = getSubImage(screenshot.getImage(), element.getLocation(),
+				element.getSize().getWidth(), element.getSize().getHeight());
+
+			String textContentPath = properties.getProperty("storage_folder_path") + moduleName +
+			"\\" + fileBaseName + "\\" + "screenshot\\" + getScreenshotName(fileBaseName);
+
+			File screenshotFile = new File(textContentPath);
+			screenshotFile.mkdirs();
+			screenshotFile.createNewFile();
+
+			ImageIO.write(subImage, "png", screenshotFile);
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static String getScreenshotName(String name) {
+		return getFileName(name, "png");
+	}
+
+	private static String getAudioName(String name) {
+		return getFileName(name, "mp3");
+	}
+
 	private static String getVideoName(String name) {
 		return getFileName(name, "m3u8");
 	}
@@ -30,9 +81,11 @@ public class FileRepository {
 		return name + "." + fileExtension;
 	}
 
-	// Модуль 1:: вокал, что-то ещё. Тренировка
-	// Модуль 1. Вокал, что-то еще. Тренировка
-	// А зачем нам лист? Где? Зачем?
+	private static BufferedImage getSubImage(BufferedImage screenshot, Point location, int width, int height) {
+		return screenshot.getSubimage(location.getX(), location.getY(),
+			width, height);
+	}
+
 	public static String replaceIllegalSymbols(String string) {
 		List<Pair<String, String>> replacements = List.of(
 			new Pair<>("->", "→"));

@@ -1,8 +1,12 @@
 import javafx.util.*;
+import org.openqa.selenium.*;
+import ru.yandex.qatools.ashot.*;
+import ru.yandex.qatools.ashot.shooting.*;
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.stream.*;
 
 public class Parser {
 	private ArrayList<PageContent> pageContents;
@@ -33,13 +37,43 @@ public class Parser {
 		chromeDriverHelper.goTo(moduleUrl);
 		List<Pair<String, String>> lessonsUrlAndName = chromeDriverHelper.getLessonNameAndUrl();
 
-		for (Pair<String, String> lessonUrlAndName : lessonsUrlAndName) {
+		int lessonsCount = lessonsUrlAndName.size();
+		Pair<String, String> lessonUrlAndName;
+		for (int i = 0; i < lessonsCount; i++) {
+			lessonUrlAndName = new Pair<>(
+				lessonsUrlAndName.get(i).getKey(),
+				(i + 1) + ". " + lessonsUrlAndName.get(i).getValue());
+
 			parseLessonPage(lessonUrlAndName.getKey(), lessonUrlAndName.getValue(), moduleName);
 		}
 	}
 
 	private void parseLessonPage(String lessonUrl, String lessonName, String moduleName) {
 		chromeDriverHelper.goTo(lessonUrl);
+		tryFindAndDownloadTextContent(lessonName, moduleName);
+		tryFindAndDownloadVideo(lessonName, moduleName);
+		tryFindAndDownloadAudio(lessonName, moduleName);
+	}
+
+	private void tryFindAndDownloadTextContent(String lessonName, String moduleName) {
+		Optional<WebElement> contentElement = chromeDriverHelper.getWebElement(
+			properties.getProperty("xpath_to_text_content"));
+
+		if (contentElement.isEmpty()) {
+			return;
+		}
+
+		Screenshot screenshot = chromeDriverHelper.getScreenshot();
+
+		FileRepository.saveScreenshotToFile(
+			screenshot,
+			contentElement.get(),
+			lessonName,
+			moduleName
+		);
+	}
+
+	private void tryFindAndDownloadVideo(String lessonName, String moduleName) {
 		Optional<String> videoM3u8TextFileDownloadLink = chromeDriverHelper.getM3u8TextFileDownloadLink();
 
 		URL m3u8TextFileDownloadUrl = null;
@@ -48,6 +82,20 @@ public class Parser {
 				m3u8TextFileDownloadUrl = new URL(videoM3u8TextFileDownloadLink.get());
 				InputStream videoStream = Downloader.downloadVideo(m3u8TextFileDownloadUrl);
 				FileRepository.saveVideoToFile(videoStream, lessonName, moduleName);
+			} catch (MalformedURLException e) {
+				throw new RuntimeException(e);
+			}
+	}
+
+	private void tryFindAndDownloadAudio(String lessonName, String moduleName) {
+		Optional<String> audioDownloadLink = chromeDriverHelper.getAudioDownloadLink();
+
+		URL audioDownloadUrl = null;
+		if (audioDownloadLink.isPresent())
+			try {
+				audioDownloadUrl = new URL(audioDownloadLink.get());
+				InputStream videoStream = Downloader.downloadAudio(audioDownloadUrl);
+				FileRepository.saveAudioToFile(videoStream, lessonName, moduleName);
 			} catch (MalformedURLException e) {
 				throw new RuntimeException(e);
 			}
