@@ -14,6 +14,16 @@ public class Downloader {
 		return in;
 	}
 
+	public static InputStream downloadAudio(URL audioDownloadUrl) {
+		InputStream in = null;
+		try {
+			in = audioDownloadUrl.openStream();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return in;
+	}
+
 	private static URL getVideoUrl(URL m3u8TextFileUrl) {
 		URL videoDownloadUrl = null;
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(m3u8TextFileUrl.openStream()))) {

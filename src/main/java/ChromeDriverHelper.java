@@ -4,10 +4,9 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.*;
 import org.openqa.selenium.devtools.*;
 
-import java.io.*;
 import java.net.*;
-import java.nio.charset.*;
 import java.util.*;
+import java.util.NoSuchElementException;
 
 public class ChromeDriverHelper {
 	private static final String initialUrl = "data:,";
@@ -48,16 +47,21 @@ public class ChromeDriverHelper {
 		}
 	}
 
-	public InputStream getHtmlStream(String url) {
-		driver.get(url);
-		return new ByteArrayInputStream(driver.getPageSource().getBytes(StandardCharsets.UTF_8));
-	}
-
 	public void goTo(String url) {
 		driver.get(url);
 	}
 
-	public List<Pair<String, String>> getModuleNameAndlink() {
+	public Optional<WebElement> getWebElement(String xpath) {
+		WebElement element;
+		try {
+			element = driver.findElement(By.xpath(xpath));
+		} catch (NoSuchElementException e) {
+			return Optional.empty();
+		}
+		return Optional.of(element);
+	}
+
+	public List<Pair<String, String>> getModuleNameAndLink() {
 		List<WebElement> modules = driver.findElements(By.xpath(properties.getProperty("xpath_to_modules")));
 
 		ArrayList<Pair<String, String>> modulesNameAndLink = new ArrayList<>();
@@ -97,6 +101,18 @@ public class ChromeDriverHelper {
 		return Optional.of(
 			(String)javascriptExecutor.executeScript(
 				properties.getProperty("javascript_to_video_download_link")));
+	}
+
+	public Optional<String> getAudioDownloadLink() {
+		Optional<WebElement> audioTagElement = driver
+			.findElements(By.xpath(properties.getProperty("xpath_to_audio_tag")))
+			.stream().findFirst();
+		if (audioTagElement.isEmpty())
+			return Optional.empty();
+
+		String audioDownloadLink = audioTagElement.get().getAttribute("src");
+
+		return Optional.of(audioDownloadLink);
 	}
 
 	public List<Cookie> parseCookies() {
