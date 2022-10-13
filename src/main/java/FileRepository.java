@@ -1,5 +1,10 @@
 import javafx.util.*;
+import org.openqa.selenium.*;
+import ru.yandex.qatools.ashot.*;
 
+import javax.imageio.*;
+import javax.imageio.stream.*;
+import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -39,6 +44,32 @@ public class FileRepository {
 		}
 	}
 
+	public static void saveScreenshotToFile(Screenshot screenshot, WebElement element, String fileBaseName, String moduleName) {
+		fileBaseName = replaceIllegalSymbols(fileBaseName);
+		moduleName = replaceIllegalSymbols(moduleName);
+
+		try {
+			BufferedImage subImage = getSubImage(screenshot.getImage(), element.getLocation(),
+				element.getSize().getWidth(), element.getSize().getHeight());
+
+			String textContentPath = properties.getProperty("storage_folder_path") + moduleName +
+			"\\" + fileBaseName + "\\" + "screenshot\\" + getScreenshotName(fileBaseName);
+
+			File screenshotFile = new File(textContentPath);
+			screenshotFile.mkdirs();
+			screenshotFile.createNewFile();
+
+			ImageIO.write(subImage, "png", screenshotFile);
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private static String getScreenshotName(String name) {
+		return getFileName(name, "png");
+	}
+
 	private static String getAudioName(String name) {
 		return getFileName(name, "mp3");
 	}
@@ -49,6 +80,11 @@ public class FileRepository {
 
 	private static String getFileName(String name, String fileExtension) {
 		return name + "." + fileExtension;
+	}
+
+	private static BufferedImage getSubImage(BufferedImage screenshot, Point location, int width, int height) {
+		return screenshot.getSubimage(location.getX(), location.getY(),
+			width, height);
 	}
 
 	public static String replaceIllegalSymbols(String string) {

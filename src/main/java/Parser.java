@@ -1,4 +1,6 @@
 import javafx.util.*;
+import org.openqa.selenium.*;
+import ru.yandex.qatools.ashot.*;
 
 import java.io.*;
 import java.net.*;
@@ -46,8 +48,27 @@ public class Parser {
 
 	private void parseLessonPage(String lessonUrl, String lessonName, String moduleName) {
 		chromeDriverHelper.goTo(lessonUrl);
+		tryFindAndDownloadTextContent(lessonName, moduleName);
 		tryFindAndDownloadVideo(lessonName, moduleName);
 		tryFindAndDownloadAudio(lessonName, moduleName);
+	}
+
+	private void tryFindAndDownloadTextContent(String lessonName, String moduleName) {
+		Optional<WebElement> contentElement = chromeDriverHelper.getWebElement(
+			properties.getProperty("xpath_to_text_content"));
+
+		if (contentElement.isEmpty()) {
+			return;
+		}
+
+		Screenshot screenshot = chromeDriverHelper.getScreenshot();
+
+		FileRepository.saveScreenshotToFile(
+			screenshot,
+			contentElement.get(),
+			lessonName,
+			moduleName
+		);
 	}
 
 	private void tryFindAndDownloadVideo(String lessonName, String moduleName) {

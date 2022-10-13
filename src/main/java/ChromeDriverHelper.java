@@ -3,6 +3,8 @@ import org.apache.hc.core5.net.*;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.*;
 import org.openqa.selenium.devtools.*;
+import ru.yandex.qatools.ashot.*;
+import ru.yandex.qatools.ashot.shooting.*;
 
 import java.net.*;
 import java.util.*;
@@ -113,6 +115,11 @@ public class ChromeDriverHelper {
 		String audioDownloadLink = audioTagElement.get().getAttribute("src");
 
 		return Optional.of(audioDownloadLink);
+	}
+
+	public Screenshot getScreenshot() {
+		return new AShot().shootingStrategy(
+			ShootingStrategies.viewportPasting(1000)).takeScreenshot(driver);
 	}
 
 	public List<Cookie> parseCookies() {
