@@ -57,8 +57,8 @@ public class ChromeDriverHelper {
 		driver.get(url);
 	}
 
-	public List<Pair<String, String>> getModuleNameAndUrl() {
-		List<WebElement> modules = driver.findElements(By.className("no-children"));
+	public List<Pair<String, String>> getModuleNameAndlink() {
+		List<WebElement> modules = driver.findElements(By.xpath(properties.getProperty("xpath_to_modules")));
 
 		ArrayList<Pair<String, String>> modulesNameAndLink = new ArrayList<>();
 		for (WebElement element : modules) {
@@ -71,10 +71,10 @@ public class ChromeDriverHelper {
 	}
 
 	public List<Pair<String, String>> getLessonNameAndUrl() {
-		List<WebElement> modules = driver.findElements(By.xpath("//*[@class='link title']"));
+		List<WebElement> lessons = driver.findElements(By.xpath(properties.getProperty("xpath_to_lessons")));
 
 		ArrayList<Pair<String, String>> lessonNameAndLink = new ArrayList<>();
-		for (WebElement element : modules) {
+		for (WebElement element : lessons) {
 			String link = toAbsoluteUrlIfNot(baseUrl, element.getAttribute("href"));
 			String name = element.getText();
 			lessonNameAndLink.add(new Pair<>(link, name));
@@ -83,14 +83,20 @@ public class ChromeDriverHelper {
 		return lessonNameAndLink;
 	}
 
-	public String getM3u8TextFileDownloadLink() {
-		String videoPlayerUrl = driver
-			.findElement(By.xpath("//iframe[starts-with(@id, 'vhplayeriframe')]"))
-			.getAttribute("src");
+	public Optional<String> getM3u8TextFileDownloadLink() {
+		Optional<WebElement> videoPlayerFrame = driver
+			.findElements(By.xpath(properties.getProperty("xpath_to_video_player")))
+			.stream().findFirst();
+		if (videoPlayerFrame.isEmpty())
+			return Optional.empty();
+
+		String videoPlayerUrl = videoPlayerFrame.get().getAttribute("src");
 		driver.get(videoPlayerUrl);
 
 		JavascriptExecutor javascriptExecutor = driver;
-		return (String)javascriptExecutor.executeScript("return window.configs.masterPlaylistUrl;");
+		return Optional.of(
+			(String)javascriptExecutor.executeScript(
+				properties.getProperty("javascript_to_video_download_link")));
 	}
 
 	public List<Cookie> parseCookies() {

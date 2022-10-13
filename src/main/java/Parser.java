@@ -1,14 +1,12 @@
 import javafx.util.*;
-import org.openqa.selenium.*;
 
 import java.io.*;
 import java.net.*;
-import java.nio.file.*;
 import java.util.*;
 
 public class Parser {
-	Properties properties = PropertiesHelper.getProperties();
-	ChromeDriverHelper chromeDriverHelper = new ChromeDriverHelper();
+	private final Properties properties = PropertiesHelper.getProperties();
+	private final ChromeDriverHelper chromeDriverHelper = new ChromeDriverHelper();
 
 	public void start() {
 		chromeDriverHelper.init();
@@ -23,66 +21,35 @@ public class Parser {
 
 	private void parseModulesListPage(String url) {
 		chromeDriverHelper.goTo(url);
-
-		List<Pair<String, String>> moduleNameAndUrl = chromeDriverHelper.getModuleNameAndUrl();
-		for (Pair<String, String> element : moduleNameAndUrl) {
-			parseLessonsListPage(element.getValue(), element.getKey());
+		
+		List<Pair<String, String>> modulesUrlAndName = chromeDriverHelper.getModuleNameAndlink();
+		for (Pair<String, String> moduleNameAndUrl : modulesUrlAndName) {
+			parseLessonsListPage(moduleNameAndUrl.getKey(), moduleNameAndUrl.getValue());
 		}
 	}
 
-	private void parseLessonsListPage(String url, String moduleName) {
-		chromeDriverHelper.goTo(url);
-
-		List<Pair<String, String>> lessonNameAndUrl = chromeDriverHelper.getLessonNameAndUrl();
-		for (Pair<String, String> element : lessonNameAndUrl) {
-			parseLessonPage(element.getValue(), element.getKey(), moduleName);
+	private void parseLessonsListPage(String moduleUrl, String moduleName) {
+		chromeDriverHelper.goTo(moduleUrl);
+		
+		List<Pair<String, String>> lessonsUrlAndName = chromeDriverHelper.getLessonNameAndUrl();
+		for (Pair<String, String> lessonUrlAndName : lessonsUrlAndName) {
+			parseLessonPage(lessonUrlAndName.getKey(), lessonUrlAndName.getValue(), moduleName);
 		}
 	}
 
-	private void parseLessonPage(String url, String lessonTitle, String moduleName) {
-		chromeDriverHelper.goTo(url);
+	private void parseLessonPage(String lessonUrl, String lessonName, String moduleName) {
+		chromeDriverHelper.goTo(lessonUrl);
+		Optional<String> videoM3u8TextFileDownloadLink = chromeDriverHelper.getM3u8TextFileDownloadLink();
 
-		String videoM3u8TextFileDownloadLink = chromeDriverHelper.getM3u8TextFileDownloadLink();
 		URL m3u8TextFileDownloadUrl = null;
-		if (videoM3u8TextFileDownloadLink != null)
+		if (videoM3u8TextFileDownloadLink.isPresent())
 			try {
-				m3u8TextFileDownloadUrl = new URL(videoM3u8TextFileDownloadLink);
-				String fileName = moduleName + ". " + lessonTitle;
-				downloadVideoToFile(m3u8TextFileDownloadUrl,fileName);
+				m3u8TextFileDownloadUrl = new URL(videoM3u8TextFileDownloadLink.get());
+				InputStream videoStream = Downloader.downloadVideo(m3u8TextFileDownloadUrl);
+				FileRepository.saveVideoToFile(videoStream, lessonName, moduleName);
 			} catch (MalformedURLException e) {
 				throw new RuntimeException(e);
 			}
 	}
-	public void downloadVideoToFile(URL m3u8TextFileUrl, String fileName){
-		URL videoDownloadUrl = getVideoUrl(m3u8TextFileUrl);
-		InputStream in = null;
-		try {
-			in = videoDownloadUrl.openStream();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		saveVideoToFile(in, fileName);
-	}
-
-	public URL getVideoUrl(URL m3u8TextFileUrl) {
-		URL videoDownloadUrl = null;
-		try (BufferedReader in = new BufferedReader(new InputStreamReader(m3u8TextFileUrl.openStream()))) {
-			String urlString = in.lines().skip(6).findFirst().orElseThrow();
-			videoDownloadUrl =  new URL(urlString);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-
-		return videoDownloadUrl;
-	}
-
-	public void saveVideoToFile(InputStream in, String fileName) {
-		try {
-			Path filePath = Paths.get(properties.getProperty("storage_folder_path"), fileName);
-			Files.copy(in, filePath, StandardCopyOption.REPLACE_EXISTING);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
 }
+
