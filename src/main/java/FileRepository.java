@@ -1,9 +1,9 @@
+import converter.*;
 import javafx.util.*;
 import org.openqa.selenium.*;
 import ru.yandex.qatools.ashot.*;
 
 import javax.imageio.*;
-import javax.imageio.stream.*;
 import java.awt.image.*;
 import java.io.*;
 import java.nio.file.*;
@@ -11,6 +11,9 @@ import java.util.*;
 
 public class FileRepository {
 	private static final Properties properties = PropertiesHelper.getProperties();
+	private static final M3uConverter m3uConverter = new M3uConverter(
+		new HLSParser(),
+		createFfmpegClient(properties));
 
 	public static void saveAudioToFile(InputStream in, String fileBaseName, String moduleName) {
 		fileBaseName = replaceIllegalSymbols(fileBaseName);
@@ -32,13 +35,26 @@ public class FileRepository {
 		fileBaseName = replaceIllegalSymbols(fileBaseName);
 		moduleName = replaceIllegalSymbols(moduleName);
 
-		String videoPath = properties.getProperty("storage_folder_path") + moduleName +
-			"\\" + fileBaseName + "\\" + "video\\";
+		String m3u8VideoPath = properties.getProperty("storage_folder_path") + moduleName +
+			"\\" + fileBaseName + "\\" + "m3u8 video\\";
 
 		try {
-			Files.createDirectories(Paths.get(videoPath));
-			Path filePath = Paths.get(videoPath, getVideoName(fileBaseName));
+			Files.createDirectories(Paths.get(m3u8VideoPath));
+			Path filePath = Paths.get(m3u8VideoPath, getVideoName(fileBaseName));
 			Files.copy(in, filePath, StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+		String mp4VideoPath = properties.getProperty("storage_folder_path") + moduleName +
+			"\\" + fileBaseName + "\\" + "mp4 video\\" + getMp4Name(fileBaseName);
+
+		convertVideoFromM3u8toMp4(m3u8VideoPath + getVideoName(fileBaseName), mp4VideoPath);
+	}
+
+	public static void convertVideoFromM3u8toMp4(String m3u8VideoPath, String outputMp4Path) {
+		try {
+			m3uConverter.convertToMp4(m3u8VideoPath, outputMp4Path);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -76,6 +92,10 @@ public class FileRepository {
 
 	private static String getVideoName(String name) {
 		return getFileName(name, "m3u8");
+	}
+
+	private static String getMp4Name(String name) {
+		return getFileName(name, "mp4");
 	}
 
 	private static String getFileName(String name, String fileExtension) {
@@ -122,6 +142,14 @@ public class FileRepository {
 		}
 
 		return Optional.empty();
+	}
+
+	private static FfmpegClient createFfmpegClient(Properties properties) {
+		try {
+			return new FfmpegClient(properties.getProperty("ffmpeg.path"));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
 
