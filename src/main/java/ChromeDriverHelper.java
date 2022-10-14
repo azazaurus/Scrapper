@@ -23,11 +23,9 @@ public class ChromeDriverHelper {
 	}
 
 	public void init() {
-		String chromeDriverPath = "D:\\Programs\\chromedriver.exe";
-		System.setProperty("webdriver.chrome.driver", chromeDriverPath);
+		System.setProperty("webdriver.chrome.driver", properties.getProperty("chromedriver.path"));
 
-		ChromeOptions options = new ChromeOptions();
-		options.addArguments("--headless", "--window-size=1920,1200", "--silent");
+		ChromeOptions options = getChromeOptions(properties);
 		driver = new ChromeDriver(options);
 	}
 
@@ -152,5 +150,24 @@ public class ChromeDriverHelper {
 		} catch (URISyntaxException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private ChromeOptions getChromeOptions(Properties properties) {
+		ChromeOptions options = new ChromeOptions();
+		options.addArguments("--silent");
+
+		String pathToChrome = properties.getProperty("chrome.path", "");
+		if (!pathToChrome.isBlank())
+			options.setBinary(pathToChrome);
+
+		String windowSize = properties.getProperty("chromedriver.window_size", "");
+		if (!windowSize.isBlank())
+			options.addArguments("--window-size=" + windowSize);
+
+		boolean isHeadless = !properties.getProperty("chromedriver.is_headless", "true").equalsIgnoreCase("false");
+		if (isHeadless)
+			options.addArguments("--headless");
+
+		return options;
 	}
 }
